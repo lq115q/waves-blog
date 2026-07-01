@@ -1,0 +1,23 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import TagPage from '@/components/sections/TagPage.astro';
+import { getAllTags, getPostsByTag } from '@/lib/posts';
+import { useTranslations } from '@/i18n/utils';
+
+export async function getStaticPaths() {
+  const tags = await getAllTags('zh');
+  return tags.map(({ tag }) => ({ params: { tag }, props: { tag } }));
+}
+
+interface Props {
+  tag: string;
+}
+
+const { tag } = Astro.props;
+const posts = await getPostsByTag('zh', tag);
+const t = useTranslations('zh');
+---
+
+<BaseLayout title={t('tag.heading', { tag })} locale="zh">
+  <TagPage locale="zh" tag={tag} posts={posts} />
+</BaseLayout>

@@ -1,0 +1,44 @@
+---
+import type { Locale } from '@/consts';
+import { useTranslations, localizePath } from '@/i18n/utils';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const postsHref = localizePath('/posts', locale);
+---
+
+<div class="container-prose prose py-12">
+  <h1>{t('about.title')}</h1>
+
+  {locale === 'zh' ? (
+    <>
+      <p>
+        基于 <strong>Astro 5</strong> 的技术博客 ——
+      </p>
+      <p>
+        作者 Waves，以及 ... Claude Code
+      </p>
+      <p>
+        想看文章？前往 <a href={postsHref}>{t('nav.posts')}</a>。
+        设计取舍与实现细节记录在代码仓。
+      </p>
+    </>
+  ) : (
+    <>
+      <p>
+        Tech blog built on <strong>Astro 5</strong> ——
+      </p>
+      <p>
+        Author is Waves, and ... Claude Code  
+      </p>
+      <p>
+        Looking for posts? Head to <a href={postsHref}>{t('nav.posts')}</a>.
+        Design trade-offs and implementation notes are kept in Github.
+      </p>
+    </>
+  )}
+</div>

@@ -1,0 +1,73 @@
+---
+import type { Locale } from '@/consts';
+import { useTranslations, localizePath } from '@/i18n/utils';
+import { getPosts } from '@/lib/posts';
+import Hero from '@/components/Hero.astro';
+import PostCard from '@/components/PostCard.astro';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const heroTitle = locale === 'zh' ? 'Waves\' Blog' : 'Waves\' Blog';
+const heroKicker = locale === 'zh' ? 'secure · fast' : 'secure · fast';
+
+const all = await getPosts(locale);
+const posts = all.slice(0, 5);
+const [featured, ...rest] = posts;
+
+const postsHref = localizePath('/posts', locale);
+const searchHref = localizePath('/search', locale);
+const tagsHref = localizePath('/tags', locale);
+const aboutHref = localizePath('/about', locale);
+---
+
+<Hero
+  kicker={heroKicker}
+  title={heroTitle}
+  tagline={t('home.tagline')}
+  primaryCta={{ label: t('home.latest'), href: postsHref }}
+  secondaryCta={{ label: t('search.title'), href: searchHref }}
+/>
+
+<section class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+  <div class="mb-6 flex items-baseline justify-between">
+    <h2 class="font-mono text-sm uppercase tracking-wider text-muted">
+      {t('home.latest')}
+    </h2>
+    <a href={postsHref} class="link-accent text-sm">
+      {t('home.viewAll')} &rarr;
+    </a>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {featured && (
+      <div class="sm:col-span-2">
+        <PostCard post={featured} />
+      </div>
+    )}
+    {rest.map((p) => <PostCard post={p} />)}
+
+    <a href={searchHref} class="card card-hover p-5 block">
+      <div class="font-mono text-xs uppercase tracking-wider text-accent">
+        {t('nav.search')}
+      </div>
+      <div class="mt-2 text-fg">{t('home.searchCard')}</div>
+    </a>
+    <a href={tagsHref} class="card card-hover p-5 block">
+      <div class="font-mono text-xs uppercase tracking-wider text-accent">
+        {t('nav.tags')}
+      </div>
+      <div class="mt-2 text-fg">{t('home.tagsCard')}</div>
+    </a>
+    <a href={aboutHref} class="card card-hover p-5 block">
+      <div class="font-mono text-xs uppercase tracking-wider text-accent">
+        {t('nav.about')}
+      </div>
+      <div class="mt-2 text-fg">{t('home.aboutCard')}</div>
+    </a>
+  </div>
+</section>

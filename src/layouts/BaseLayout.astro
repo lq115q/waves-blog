@@ -1,0 +1,92 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import BaseHead from '@/components/BaseHead.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import CommandPalette from '@/components/CommandPalette.tsx';
+import { getLocaleFromUrl, useTranslations, localizePath } from '@/i18n/utils';
+import { NAV, SITE_META, type Locale } from '@/consts';
+import { getPosts, postUrl } from '@/lib/posts';
+
+interface Props {
+  title: string;
+  /** 省略时回退到当前语言的站点默认描述 */
+  description?: string;
+  locale?: Locale;
+  image?: string;
+  article?: { publishedTime?: string; modifiedTime?: string; tags?: string[] };
+}
+
+const { title, image, article } = Astro.props;
+const locale = Astro.props.locale ?? getLocaleFromUrl(Astro.url);
+const description = Astro.props.description ?? SITE_META[locale].description;
+const t = useTranslations(locale);
+
+// ⌘K 数据：导航页 + 最近文章
+const pages = NAV.map((n) => ({ label: t(`nav.${n.key}`), href: localizePath(n.path, locale) }));
+const recent = (await getPosts(locale)).slice(0, 8).map((p) => ({
+  label: p.data.title,
+  href: postUrl(p),
+}));
+const cmdkLabels = {
+  placeholder: t('cmdk.placeholder'),
+  empty: t('cmdk.empty'),
+  groupPages: t('cmdk.groupPages'),
+  groupActions: t('cmdk.groupActions'),
+  groupPosts: t('cmdk.groupPosts'),
+  actionTheme: t('cmdk.actionTheme'),
+  actionSearch: t('cmdk.actionSearch'),
+  actionCopyUrl: t('cmdk.actionCopyUrl'),
+};
+const htmlLang = locale === 'zh' ? 'zh-CN' : 'en';
+---
+
+<!doctype html>
+<html lang={htmlLang} class="dark">
+  <head>
+    <BaseHead title={title} description={description} locale={locale} image={image} article={article} />
+    <ClientRouter />
+  </head>
+  <body class="min-h-screen bg-bg text-fg antialiased">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-accent-fg"
+    >
+      {t('site.skipToContent')}
+    </a>
+
+    <Header />
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <Footer />
+
+    <CommandPalette
+      client:idle
+      locale={locale}
+      searchHref={localizePath('/search', locale)}
+      pages={pages}
+      posts={recent}
+      labels={cmdkLabels}
+    />
+
+    <!-- 全站交互委托（Astro 处理为外部模块脚本，符合 CSP script-src 'self'） -->
+    <script>
+      document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-theme-toggle]')) {
+          const dark = document.documentElement.classList.toggle('dark');
+          try {
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+          } catch {
+            /* ignore */
+          }
+        } else if (target.closest('[data-cmdk-open]')) {
+          window.dispatchEvent(new CustomEvent('cmdk:open'));
+        }
+      });
+    </script>
+  </body>
+</html>

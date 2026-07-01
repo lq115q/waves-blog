@@ -1,0 +1,32 @@
+---
+import type { Locale } from '@/consts';
+import { useTranslations, localizePath } from '@/i18n/utils';
+import { getAllTags } from '@/lib/posts';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const tags = await getAllTags(locale);
+---
+
+<section class="mx-auto max-w-3xl px-4 sm:px-6 py-12">
+  <h1 class="text-3xl font-semibold tracking-tight text-fg">{t('tags.title')}</h1>
+
+  {tags.length === 0 ? (
+    <p class="mt-6 text-muted">{t('tags.empty')}</p>
+  ) : (
+    <ul class="mt-8 flex flex-wrap gap-2">
+      {tags.map(({ tag, count }) => (
+        <li>
+          <a href={localizePath(`/tags/${tag}`, locale)} class="tag-chip">
+            <span>{tag}</span>
+            <span class="ml-2 text-faint">{t('tag.count', { n: count })}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )}
+</section>

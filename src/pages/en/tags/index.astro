@@ -1,0 +1,11 @@
+---
+import { useTranslations } from '@/i18n/utils';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import TagsIndex from '@/components/sections/TagsIndex.astro';
+
+const t = useTranslations('en');
+---
+
+<BaseLayout title={t('tags.title')} locale="en">
+  <TagsIndex locale="en" />
+</BaseLayout>

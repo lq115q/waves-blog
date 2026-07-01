@@ -1,0 +1,23 @@
+---
+import {
+  getLocaleFromUrl,
+  getAltLocale,
+  switchLocalePath,
+  useTranslations,
+} from '@/i18n/utils';
+
+const locale = getLocaleFromUrl(Astro.url);
+const alt = getAltLocale(locale);
+const t = useTranslations(locale);
+const href = switchLocalePath(Astro.url.pathname, alt);
+---
+
+<a
+  href={href}
+  hreflang={alt === 'zh' ? 'zh-CN' : 'en'}
+  class="grid h-9 min-w-9 place-items-center rounded-lg border border-border px-2 font-mono text-xs text-muted transition hover:text-accent hover:border-accent/50"
+  aria-label={t('lang.label')}
+  title={t('lang.label')}
+>
+  {t('lang.switch')}
+</a>

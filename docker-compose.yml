@@ -1,0 +1,25 @@
+# 本机环境隔离：所有 Node/pnpm 操作都在容器里跑，宿主只需 Docker。
+# 用法见 Makefile 与 docs/03-local-development.md。
+services:
+  app:
+    build: .
+    image: blog-web-dev
+    working_dir: /app
+    init: true
+    environment:
+      - ASTRO_TELEMETRY_DISABLED=1
+    volumes:
+      # 源码：宿主目录挂进容器，改即生效
+      - .:/app
+      # node_modules 用命名卷，避免被宿主空目录覆盖、并隔离原生二进制
+      - node_modules:/app/node_modules
+      # pnpm 内容寻址 store 持久化，加速重复安装
+      - pnpm-store:/root/.local/share/pnpm
+    ports:
+      - '4321:4321' # dev server
+      - '4322:4322' # astro preview
+    command: pnpm dev --host --port 4321
+
+volumes:
+  node_modules:
+  pnpm-store:

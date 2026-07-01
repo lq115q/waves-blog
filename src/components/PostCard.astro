@@ -1,0 +1,67 @@
+---
+/**
+ * 文章卡片：列表/首页/标签页通用。
+ * - 一行 meta：发表日期 · 阅读时长（font-mono / text-faint）
+ * - 标题：text-lg、hover:text-accent，附 view transition name
+ * - 描述：text-muted
+ * - 标签：.tag-chip，链接到 /tags/:tag（按文章语言本地化）
+ */
+import type { Post } from '@/lib/posts';
+import { postLang, postUrl, readingMinutes, transitionName } from '@/lib/posts';
+import { formatDate, isoDate } from '@/lib/date';
+import { useTranslations, localizePath } from '@/i18n/utils';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const lang = postLang(post);
+const t = useTranslations(lang);
+const minutes = readingMinutes(post.body ?? '');
+const href = postUrl(post);
+---
+
+<article class="card card-hover p-5">
+  <p class="mb-2 font-mono text-xs text-faint">
+    <time datetime={isoDate(post.data.pubDate)}>{formatDate(post.data.pubDate, lang)}</time>
+    <span class="px-1.5" aria-hidden="true">·</span>
+    <span>{minutes} {t('post.readingTime')}</span>
+    {
+      post.data.draft && (
+        <>
+          <span class="px-1.5" aria-hidden="true">·</span>
+          <span class="rounded border border-accent/50 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-accent">
+            {t('post.draft')}
+          </span>
+        </>
+      )
+    }
+  </p>
+
+  <h2 class="mb-1.5 text-lg font-medium leading-snug">
+    <a
+      href={href}
+      class="text-fg transition-colors hover:text-accent"
+      transition:name={transitionName(post)}
+    >
+      {post.data.title}
+    </a>
+  </h2>
+
+  {post.data.description && <p class="mb-3 text-sm text-muted">{post.data.description}</p>}
+
+  {
+    post.data.tags.length > 0 && (
+      <ul class="flex flex-wrap gap-2" aria-label={t('post.tags')}>
+        {post.data.tags.map((tag) => (
+          <li>
+            <a class="tag-chip transition hover:opacity-80" href={localizePath(`/tags/${tag}`, lang)}>
+              #{tag}
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</article>

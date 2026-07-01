@@ -1,0 +1,95 @@
+---
+import '@/styles/global.css';
+import { SITE, SITE_URL, LOCALES, type Locale } from '@/consts';
+import { switchLocalePath } from '@/i18n/utils';
+
+interface Props {
+  title: string;
+  description: string;
+  locale: Locale;
+  /** OG 图绝对 URL 或站内路径；缺省用站点默认卡片 */
+  image?: string;
+  /** 文章页补充 OG 元信息 */
+  article?: { publishedTime?: string; modifiedTime?: string; tags?: string[] };
+}
+
+const { title, description, locale, image, article } = Astro.props;
+
+const pathname = Astro.url.pathname;
+const canonical = new URL(pathname, SITE_URL).href;
+const ogImage = new URL(image ?? '/og/_site.png', SITE_URL).href;
+
+// hreflang 备用链接（中文优先：zh 不带前缀）
+const alternates = LOCALES.map((loc) => ({
+  loc,
+  href: new URL(switchLocalePath(pathname, loc), SITE_URL).href,
+}));
+
+// 当前语言的 feeds 前缀（zh 根 / en 前缀）
+const feedBase = locale === 'zh' ? '' : '/en';
+const htmlLang = locale === 'zh' ? 'zh-CN' : 'en';
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<meta name="generator" content={Astro.generator} />
+<meta name="color-scheme" content="dark light" />
+<meta name="theme-color" content="#0a0f0d" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)" />
+
+<!-- 无闪屏主题（外置脚本，满足 CSP script-src 'self'） -->
+<script is:inline src="/js/theme.js"></script>
+
+<!-- 图标 -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+<!-- hreflang 备用语言 -->
+{
+  alternates.map((a) => (
+    <link rel="alternate" hreflang={a.loc === 'zh' ? 'zh-CN' : 'en'} href={a.href} />
+  ))
+}
+<link rel="alternate" hreflang="x-default" href={new URL('/', SITE_URL).href} />
+
+<!-- Feeds（当前语言） -->
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  title={`${SITE.name} RSS`}
+  href={new URL(`${feedBase}/rss.xml`, SITE_URL).href}
+/>
+<link
+  rel="alternate"
+  type="application/atom+xml"
+  title={`${SITE.name} Atom`}
+  href={new URL(`${feedBase}/atom.xml`, SITE_URL).href}
+/>
+<link
+  rel="alternate"
+  type="application/feed+json"
+  title={`${SITE.name} JSON Feed`}
+  href={new URL(`${feedBase}/feed.json`, SITE_URL).href}
+/>
+
+<!-- Open Graph -->
+<meta property="og:type" content={article ? 'article' : 'website'} />
+<meta property="og:site_name" content={SITE.name} />
+<meta property="og:locale" content={htmlLang} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+{article?.publishedTime && <meta property="article:published_time" content={article.publishedTime} />}
+{article?.modifiedTime && <meta property="article:modified_time" content={article.modifiedTime} />}
+{article?.tags?.map((t) => <meta property="article:tag" content={t} />)}
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />

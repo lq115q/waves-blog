@@ -1,0 +1,29 @@
+---
+import { getLocaleFromUrl, useTranslations } from '@/i18n/utils';
+import { SITE } from '@/consts';
+
+const locale = getLocaleFromUrl(Astro.url);
+const t = useTranslations(locale);
+const feedBase = locale === 'zh' ? '' : '/en';
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-24 border-t border-border/70">
+  <div
+    class="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6"
+  >
+    <p>© {year} {SITE.author} · {t('footer.builtWith')}</p>
+    <nav class="flex items-center gap-4" aria-label="Footer">
+      <a class="link-accent font-mono text-xs" href={`${feedBase}/rss.xml`}>RSS</a>
+      <a class="link-accent font-mono text-xs" href={`${feedBase}/atom.xml`}>Atom</a>
+      <a class="link-accent font-mono text-xs" href={`${feedBase}/feed.json`}>JSON</a>
+      {
+        SITE.social.github && (
+          <a class="link-accent font-mono text-xs" href={SITE.social.github} rel="me noopener">
+            GitHub
+          </a>
+        )
+      }
+    </nav>
+  </div>
+</footer>

@@ -1,0 +1,112 @@
+---
+/**
+ * 文章右侧目录（仅取 H2/H3）。
+ * - 桌面侧栏使用；空 headings 不渲染。
+ * - 用 IntersectionObserver 高亮当前可见标题对应链接（.toc-active）。
+ * - 监听 astro:page-load 重新初始化以兼容 View Transitions。
+ * - 脚本走 Astro 处理的 <script>（非 inline），符合 CSP 'self'。
+ */
+import type { Locale } from '@/consts';
+import { useTranslations } from '@/i18n/utils';
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+  locale: Locale;
+}
+
+const { headings, locale } = Astro.props;
+const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+const t = useTranslations(locale);
+---
+
+{
+  items.length > 0 && (
+    <nav aria-label={t('post.toc')} class="text-sm" data-toc>
+      <p class="mb-2 font-mono text-xs uppercase tracking-[0.14em] text-faint">{t('post.toc')}</p>
+      <ul class="space-y-1.5 border-l border-border">
+        {items.map((h) => (
+          <li class={h.depth === 3 ? 'pl-6' : 'pl-3'}>
+            <a
+              href={`#${h.slug}`}
+              data-toc-link={h.slug}
+              class="block truncate text-muted transition-colors hover:text-accent"
+            >
+              {h.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+<style>
+  :global(.toc-active) {
+    color: var(--color-accent);
+  }
+</style>
+
+<script>
+  function initToc() {
+    const root = document.querySelector<HTMLElement>('[data-toc]');
+    if (!root) return;
+
+    const links = Array.from(root.querySelectorAll<HTMLAnchorElement>('[data-toc-link]'));
+    if (links.length === 0) return;
+
+    const linkBySlug = new Map<string, HTMLAnchorElement>();
+    for (const link of links) {
+      const slug = link.getAttribute('data-toc-link');
+      if (slug) linkBySlug.set(slug, link);
+    }
+
+    const main = document.querySelector('main') ?? document;
+    const headings = Array.from(
+      main.querySelectorAll<HTMLElement>('h2[id], h3[id]'),
+    ).filter((h) => linkBySlug.has(h.id));
+    if (headings.length === 0) return;
+
+    let activeSlug: string | null = null;
+    const setActive = (slug: string | null) => {
+      if (slug === activeSlug) return;
+      activeSlug = slug;
+      for (const link of links) link.classList.remove('toc-active');
+      if (slug) {
+        const link = linkBySlug.get(slug);
+        if (link) link.classList.add('toc-active');
+      }
+    };
+
+    const visible = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id = entry.target.id;
+          if (entry.isIntersecting) visible.add(id);
+          else visible.delete(id);
+        }
+        // 取页面顺序中第一个可见标题
+        const first = headings.find((h) => visible.has(h.id));
+        setActive(first ? first.id : activeSlug);
+      },
+      { rootMargin: '0px 0px -70% 0px', threshold: [0, 1] },
+    );
+
+    for (const h of headings) observer.observe(h);
+
+    // 离开页面时清理（View Transitions 切走前）
+    const cleanup = () => {
+      observer.disconnect();
+      document.removeEventListener('astro:before-swap', cleanup);
+    };
+    document.addEventListener('astro:before-swap', cleanup, { once: true });
+  }
+
+  document.addEventListener('astro:page-load', initToc);
+</script>

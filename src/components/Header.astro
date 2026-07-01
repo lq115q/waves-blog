@@ -1,0 +1,72 @@
+---
+import { getLocaleFromUrl, useTranslations, localizePath } from '@/i18n/utils';
+import { NAV, SITE } from '@/consts';
+import ThemeToggle from './ThemeToggle.astro';
+import LanguagePicker from './LanguagePicker.astro';
+
+const locale = getLocaleFromUrl(Astro.url);
+const t = useTranslations(locale);
+const home = localizePath('/', locale);
+const current = Astro.url.pathname.replace(/\/$/, '') || '/';
+---
+
+<header
+  class="sticky top-0 z-40 border-b border-border/70 bg-bg/75 backdrop-blur supports-[backdrop-filter]:bg-bg/60"
+>
+  <div class="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4 sm:px-6">
+    <a
+      href={home}
+      class="font-mono text-sm font-semibold tracking-tight text-fg"
+      aria-label={SITE.name}
+    >
+      <span class="text-accent">~/</span>{SITE.name.toLowerCase().replace(/\s+/g, '-')}
+    </a>
+
+    <nav class="ml-2 hidden items-center gap-1 sm:flex" aria-label="Primary">
+      {
+        NAV.filter((n) => n.key !== 'search').map((n) => {
+          const href = localizePath(n.path, locale);
+          const active = current === href || current.startsWith(href + '/');
+          return (
+            <a
+              href={href}
+              aria-current={active ? 'page' : undefined}
+              class:list={[
+                'rounded-md px-2.5 py-1.5 text-sm transition',
+                active ? 'text-accent' : 'text-muted hover:text-fg',
+              ]}
+            >
+              {t(`nav.${n.key}`)}
+            </a>
+          );
+        })
+      }
+    </nav>
+
+    <div class="ml-auto flex items-center gap-2">
+      <button
+        type="button"
+        data-cmdk-open
+        class="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm text-muted transition hover:text-accent hover:border-accent/50"
+        aria-label={t('cmdk.openHint')}
+      >
+        <svg
+          class="h-4 w-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m21 21-4.3-4.3"></path>
+        </svg>
+        <kbd class="hidden sm:inline-flex">⌘K</kbd>
+      </button>
+      <LanguagePicker />
+      <ThemeToggle />
+    </div>
+  </div>
+</header>

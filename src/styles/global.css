@@ -1,0 +1,334 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* 类名驱动暗色（默认 .dark，见 BaseLayout <html class="dark">）。 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── 设计令牌：颜色映射到运行时可切换的 CSS 变量 ─────────────── */
+@theme {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-fg: var(--c-fg);
+  --color-muted: var(--c-muted);
+  --color-faint: var(--c-faint);
+  --color-border: var(--c-border);
+  --color-accent: var(--c-accent);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-accent-fg: var(--c-accent-fg);
+
+  --font-sans:
+    var(--font-sans-custom, ''), ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    'Noto Sans CJK SC', sans-serif;
+  --font-mono:
+    var(--font-mono-custom, ''), ui-monospace, 'SFMono-Regular', 'JetBrains Mono',
+    'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --radius-card: 1rem;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 浅色（默认 :root）与暗色（.dark）令牌值。dark-first：BaseLayout 渲染即带 .dark。 */
+:root {
+  --c-bg: #fbfbfa;
+  --c-surface: #ffffff;
+  --c-surface-2: #f3f4f3;
+  --c-fg: #15201b;
+  --c-muted: #51635a;
+  --c-faint: #8a978f;
+  --c-border: #e3e7e4;
+  --c-accent: #0d9f6e;
+  --c-accent-soft: color-mix(in oklab, #0d9f6e 14%, transparent);
+  --c-accent-fg: #ffffff;
+  color-scheme: light;
+}
+
+.dark {
+  --c-bg: #0a0f0d;
+  --c-surface: #0f1714;
+  --c-surface-2: #131d18;
+  --c-fg: #e7ece9;
+  --c-muted: #9db1a7;
+  --c-faint: #5f7269;
+  --c-border: #1e2a24;
+  --c-accent: #34d399;
+  --c-accent-soft: color-mix(in oklab, #34d399 16%, transparent);
+  --c-accent-fg: #04130d;
+  color-scheme: dark;
+}
+
+/* ── 自托管字体槽位（默认关闭；放入 public/fonts/*.woff2 后取消注释并设置变量）──
+@font-face {
+  font-family: 'AppSans';
+  src: url('/fonts/app-sans.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root { --font-sans-custom: 'AppSans'; }
+*/
+
+/* ── 基础元素 ─────────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  kbd {
+    font-family: var(--font-mono);
+    font-size: 0.75em;
+    padding: 0.1em 0.4em;
+    border: 1px solid var(--color-border);
+    border-bottom-width: 2px;
+    border-radius: 0.35em;
+    background: var(--color-surface-2);
+    color: var(--color-muted);
+  }
+  /* 细滚动条 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+}
+
+/* ── 工具类补充 ───────────────────────────────────────────── */
+@layer components {
+  .container-prose {
+    width: 100%;
+    max-width: 46rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    transition:
+      transform 0.35s var(--ease-out-expo),
+      border-color 0.35s var(--ease-out-expo),
+      background 0.35s var(--ease-out-expo);
+  }
+  .card-hover:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in oklab, var(--color-accent) 50%, var(--color-border));
+  }
+  .link-accent {
+    color: var(--color-accent);
+    text-underline-offset: 3px;
+  }
+  .link-accent:hover {
+    text-decoration: underline;
+  }
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1;
+    padding: 0.3rem 0.55rem;
+    border-radius: 0.5rem;
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    border: 1px solid color-mix(in oklab, var(--color-accent) 28%, transparent);
+  }
+}
+
+/* ── 文章排版（typography 插件之上做暗色与强调色微调）────── */
+.prose {
+  --tw-prose-body: var(--color-fg);
+  --tw-prose-headings: var(--color-fg);
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-bold: var(--color-fg);
+  --tw-prose-quotes: var(--color-muted);
+  --tw-prose-code: var(--color-fg);
+  --tw-prose-bullets: var(--color-faint);
+  --tw-prose-hr: var(--color-border);
+  --tw-prose-quote-borders: var(--color-accent);
+  --tw-prose-th-borders: var(--color-border);
+  --tw-prose-td-borders: var(--color-border);
+  max-width: none;
+}
+.prose :where(code):not(:where(pre code)) {
+  background: var(--color-surface-2);
+  padding: 0.15em 0.4em;
+  border-radius: 0.35em;
+  font-size: 0.875em;
+}
+.prose :where(code):not(:where(pre code))::before,
+.prose :where(code):not(:where(pre code))::after {
+  content: none;
+}
+
+/* ── Shiki 双主题：默认浅色，html.dark 时切到暗色变量 ───────────── */
+.astro-code,
+.astro-code span {
+  background-color: var(--shiki-light-bg);
+  color: var(--shiki-light);
+}
+.dark .astro-code,
+.dark .astro-code span {
+  background-color: var(--shiki-dark-bg) !important;
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+.astro-code {
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 1rem 0;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.astro-code code {
+  display: grid; /* 每行一格，便于行高亮 */
+}
+.astro-code .line {
+  padding-inline: 1rem;
+  border-left: 2px solid transparent;
+}
+/* Shiki transformer 标记：行高亮 / diff / focus */
+.astro-code .line.highlighted {
+  background: var(--color-accent-soft);
+  border-left-color: var(--color-accent);
+}
+.astro-code .line.diff.add {
+  background: color-mix(in oklab, #34d399 16%, transparent);
+}
+.astro-code .line.diff.remove {
+  background: color-mix(in oklab, #f87171 16%, transparent);
+  opacity: 0.85;
+}
+.astro-code.has-focused .line:not(.focused) {
+  filter: blur(0.5px);
+  opacity: 0.5;
+  transition: 0.2s;
+}
+.astro-code.has-focused:hover .line:not(.focused) {
+  filter: none;
+  opacity: 1;
+}
+
+/* ── ⌘K 命令面板（cmdk，无头组件自定义样式）───────────────────── */
+[cmdk-overlay] {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in oklab, #000 55%, transparent);
+  backdrop-filter: blur(2px);
+  z-index: 60;
+  animation: cmdk-fade 0.15s var(--ease-out-expo);
+}
+[cmdk-dialog] {
+  position: fixed;
+  top: 18vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92vw, 38rem);
+  z-index: 61;
+}
+.cmdk-root {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.9rem;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: cmdk-pop 0.18s var(--ease-out-expo);
+}
+[cmdk-input] {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 1.1rem;
+  font-size: 1rem;
+  color: var(--color-fg);
+  outline: none;
+  font-family: var(--font-sans);
+}
+[cmdk-input]::placeholder {
+  color: var(--color-faint);
+}
+[cmdk-list] {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 0.4rem;
+  scroll-padding: 0.4rem;
+}
+[cmdk-group-heading] {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-faint);
+  padding: 0.6rem 0.7rem 0.3rem;
+}
+[cmdk-item] {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.55rem;
+  font-size: 0.92rem;
+  color: var(--color-fg);
+  cursor: pointer;
+  user-select: none;
+}
+[cmdk-item][data-selected='true'] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+[cmdk-empty] {
+  padding: 1.2rem;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+@keyframes cmdk-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cmdk-pop {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── View Transitions 细节 ───────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.32s;
+  }
+}

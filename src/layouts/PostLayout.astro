@@ -1,0 +1,157 @@
+---
+/**
+ * 单篇文章布局。
+ * - 渲染 frontmatter meta（发表/更新/阅读时长/草稿徽章/标签）
+ * - 正文走 Tailwind typography（.prose）
+ * - 桌面侧栏 sticky TOC（H2/H3）
+ * - 底部 prev/next + 返回列表
+ * - 顶部 ReadingProgress 进度条
+ */
+import { render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ReadingProgress from '@/components/ReadingProgress.astro';
+import TOC from '@/components/TOC.astro';
+import {
+  adjacentPosts,
+  getPosts,
+  postLang,
+  postUrl,
+  readingMinutes,
+  transitionName,
+  type Post,
+} from '@/lib/posts';
+import { formatDate, isoDate } from '@/lib/date';
+import { useTranslations, localizePath } from '@/i18n/utils';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const lang = postLang(post);
+const t = useTranslations(lang);
+const { Content, headings } = await render(post);
+
+const image = post.data.ogImageOverride ?? `/og/${post.id}.png`;
+const article = {
+  publishedTime: isoDate(post.data.pubDate),
+  modifiedTime: post.data.updatedDate ? isoDate(post.data.updatedDate) : undefined,
+  tags: post.data.tags,
+};
+
+const minutes = readingMinutes(post.body ?? '');
+const allPosts = await getPosts(lang);
+const { prev, next } = adjacentPosts(allPosts, post);
+const backHref = localizePath('/posts', lang);
+---
+
+<BaseLayout
+  title={post.data.title}
+  description={post.data.description}
+  locale={lang}
+  image={image}
+  article={article}
+>
+  <ReadingProgress />
+
+  <article class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <header class="mb-8">
+      <h1
+        class="text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
+        transition:name={transitionName(post)}
+      >
+        {post.data.title}
+      </h1>
+
+      <p class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-faint">
+        <span>{t('post.publishedOn')}</span>
+        <time datetime={isoDate(post.data.pubDate)}>{formatDate(post.data.pubDate, lang)}</time>
+        {
+          post.data.updatedDate && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{t('post.updatedOn')}</span>
+              <time datetime={isoDate(post.data.updatedDate)}>
+                {formatDate(post.data.updatedDate, lang)}
+              </time>
+            </>
+          )
+        }
+        <span aria-hidden="true">·</span>
+        <span>{minutes} {t('post.readingTime')}</span>
+        {
+          post.data.draft && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span class="rounded border border-accent/50 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-accent">
+                {t('post.draft')}
+              </span>
+            </>
+          )
+        }
+      </p>
+
+      {
+        post.data.tags.length > 0 && (
+          <ul class="mt-4 flex flex-wrap gap-2" aria-label={t('post.tags')}>
+            {post.data.tags.map((tag) => (
+              <li>
+                <a class="tag-chip transition hover:opacity-80" href={localizePath(`/tags/${tag}`, lang)}>
+                  #{tag}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </header>
+
+    <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_14rem]">
+      <div class="prose container-prose !px-0">
+        <Content />
+      </div>
+
+      <aside class="hidden lg:block">
+        <div class="sticky top-20">
+          <TOC headings={headings} locale={lang} />
+        </div>
+      </aside>
+    </div>
+
+    <nav
+      class="mt-12 grid gap-3 border-t border-border pt-6 sm:grid-cols-2"
+      aria-label={t('post.backToList')}
+    >
+      {
+        prev ? (
+          <a
+            href={postUrl(prev)}
+            class="card card-hover p-4 text-left transition"
+          >
+            <p class="font-mono text-[11px] uppercase tracking-wider text-faint">← {t('nav.posts')}</p>
+            <p class="mt-1 text-sm font-medium text-fg hover:text-accent">{prev.data.title}</p>
+          </a>
+        ) : (
+          <span aria-hidden="true" />
+        )
+      }
+      {
+        next ? (
+          <a
+            href={postUrl(next)}
+            class="card card-hover p-4 text-right transition sm:text-right"
+          >
+            <p class="font-mono text-[11px] uppercase tracking-wider text-faint">{t('nav.posts')} →</p>
+            <p class="mt-1 text-sm font-medium text-fg hover:text-accent">{next.data.title}</p>
+          </a>
+        ) : (
+          <span aria-hidden="true" />
+        )
+      }
+    </nav>
+
+    <p class="mt-8 text-center">
+      <a href={backHref} class="link-accent font-mono text-sm">← {t('post.backToList')}</a>
+    </p>
+  </article>
+</BaseLayout>

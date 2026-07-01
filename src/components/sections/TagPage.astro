@@ -1,0 +1,29 @@
+---
+import type { Locale } from '@/consts';
+import type { Post } from '@/lib/posts';
+import { useTranslations } from '@/i18n/utils';
+import PostCard from '@/components/PostCard.astro';
+
+interface Props {
+  locale: Locale;
+  tag: string;
+  posts: Post[];
+}
+
+const { locale, tag, posts } = Astro.props;
+const t = useTranslations(locale);
+---
+
+<section class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+  <h1 class="text-3xl font-semibold tracking-tight text-fg">
+    {t('tag.heading', { tag })}
+  </h1>
+
+  {posts.length === 0 ? (
+    <p class="mt-6 text-muted">{t('list.empty')}</p>
+  ) : (
+    <div class="mt-8 grid gap-4 sm:grid-cols-2">
+      {posts.map((p) => <PostCard post={p} />)}
+    </div>
+  )}
+</section>

@@ -1,0 +1,134 @@
+# .github/workflows/deploy.yml
+#
+# 部署到 Azure Static Web Apps —— OIDC 认证，GitHub 端零长效 secret。
+#
+# 认证思路：用 App Registration 的 federated credential 做 OIDC 登录（azure/login），
+# 登录后在运行时用 `az staticwebapp secrets list` 动态取 SWA 部署 token，
+# 用完即弃。GitHub 里因此只需存「非机密标识符」（放 Variables，不放 Secrets）。
+#
+# 前置（一次性，在 GitHub 仓库 Settings -> Secrets and variables -> Actions -> Variables）：
+#   AZURE_CLIENT_ID        App Registration 的 client id
+#   AZURE_TENANT_ID        目录（租户）id
+#   AZURE_SUBSCRIPTION_ID  订阅 id
+#   SWA_NAME               Static Web App 资源名
+#   SWA_RG                 SWA 所在 resource group
+#   SITE_URL               https://blog.wavespro.net
+#
+# 要求：
+#   - federated credential 的 subject = repo:<owner>/<repo>:ref:refs/heads/main（branch 模式）
+#   - App Registration 在 SWA 资源上有 "Static Web Apps Contributor"（含 listSecrets 权限）
+#   - 上线前建议把下方 actions 从浮动 tag 升级为 SHA pin（搜索 "pin to SHA"）
+
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write # 仅供 azure/login 换取短效 access token
+  contents: read
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      sha: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        # pin to SHA before enabling
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Enable corepack (pnpm)
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+
+      - name: Setup Node 22
+        # pin to SHA before enabling
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install deps (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (astro + pagefind)
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: pnpm build
+
+      - name: Upload dist artifact
+        # pin to SHA before enabling
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-dist-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: deploy to Azure SWA
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (for staticwebapp.config.json)
+        # pin to SHA before enabling
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download dist artifact
+        # pin to SHA before enabling
+        uses: actions/download-artifact@v4
+        with:
+          name: blog-dist-${{ needs.build.outputs.sha }}
+          path: dist
+
+      - name: Azure login (OIDC, no long-lived secret)
+        # pin to SHA before enabling
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Fetch SWA deployment token (dynamic, via OIDC)
+        id: swa
+        run: |
+          TOKEN=$(az staticwebapp secrets list \
+            --name "${{ vars.SWA_NAME }}" \
+            --resource-group "${{ vars.SWA_RG }}" \
+            --query "properties.apiKey" -o tsv)
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Static Web Apps
+        # pin to SHA before enabling
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ steps.swa.outputs.token }}
+          action: upload
+          # 产物已在 build job 生成，跳过 Oryx 重复构建
+          skip_app_build: true
+          skip_api_build: true
+          app_location: / # staticwebapp.config.json 在仓库根
+          output_location: dist # 预构建静态产物
+          api_location: '' # 无 BFF API
+
+      - name: Azure logout
+        if: always()
+        run: az logout || true

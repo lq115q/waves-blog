@@ -1,0 +1,51 @@
+---
+/**
+ * 顶部细阅读进度条（2px）。
+ * - fixed top-0，宽度=scrollTop/(scrollHeight-clientHeight)。
+ * - 走 Astro 处理的 <script>（CSP 'self'）。
+ * - 监听 astro:page-load 重新绑定；离开页面时清理。
+ */
+---
+
+<div
+  data-reading-progress
+  class="pointer-events-none fixed inset-x-0 top-0 z-50 h-[2px] origin-left bg-accent"
+  style="transform: scaleX(0)"
+  aria-hidden="true"
+>
+</div>
+
+<script>
+  function initReadingProgress() {
+    const bar = document.querySelector<HTMLElement>('[data-reading-progress]');
+    if (!bar) return;
+
+    let ticking = false;
+    const update = () => {
+      const doc = document.documentElement;
+      const max = doc.scrollHeight - doc.clientHeight;
+      const ratio = max > 0 ? Math.min(1, Math.max(0, doc.scrollTop / max)) : 0;
+      bar.style.transform = `scaleX(${ratio})`;
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+
+    const cleanup = () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      document.removeEventListener('astro:before-swap', cleanup);
+    };
+    document.addEventListener('astro:before-swap', cleanup, { once: true });
+  }
+
+  document.addEventListener('astro:page-load', initReadingProgress);
+</script>

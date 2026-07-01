@@ -1,0 +1,79 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "_comment": "scaffold: 本阶段不会触发 —— 需要先在仓库 Settings -> Integrations 装 Renovate App，并通过 Onboarding PR 后才会真正生效。本地落地、人工确认后再启用。",
+
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    ":timezone(Asia/Shanghai)"
+  ],
+
+  "labels": ["dependencies"],
+  "assigneesFromCodeOwners": true,
+
+  "schedule": ["before 9am on monday"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "bump",
+
+  "rebaseWhen": "conflicted",
+  "platformAutomerge": true,
+
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 9am on monday"],
+    "automerge": true,
+    "automergeType": "branch"
+  },
+
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "dependencies"],
+    "schedule": ["at any time"],
+    "prCreation": "immediate"
+  },
+
+  "packageRules": [
+    {
+      "description": "patch updates 自动合并（含 devDeps）",
+      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "description": "Astro 生态打包成一个 PR，避免 5 个相关包 5 个 PR",
+      "matchPackagePatterns": ["^astro", "^@astrojs/"],
+      "groupName": "astro ecosystem",
+      "schedule": ["before 9am on monday"]
+    },
+    {
+      "description": "Tailwind v4 系列打包",
+      "matchPackagePatterns": ["^tailwindcss$", "^@tailwindcss/"],
+      "groupName": "tailwindcss"
+    },
+    {
+      "description": "React 19 主版本变更要人工评估",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "groupName": "react",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Shiki transformer 跟着 Astro 节奏走",
+      "matchPackagePatterns": ["^@shikijs/"],
+      "groupName": "shiki"
+    },
+    {
+      "description": "GitHub Actions：和 SHA pin 策略冲突时优先 Renovate 自动更新 SHA",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions",
+      "schedule": ["before 9am on monday"],
+      "pinDigests": true
+    }
+  ],
+
+  "github-actions": {
+    "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"]
+  }
+}

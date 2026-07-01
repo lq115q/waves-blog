@@ -1,0 +1,13 @@
+# 不进 Docker 构建上下文，保证镜像轻量、避免把宿主 node_modules 带进容器
+node_modules
+dist
+.astro
+.git
+.github
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage
+public/pagefind

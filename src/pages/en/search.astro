@@ -1,0 +1,11 @@
+---
+import { useTranslations } from '@/i18n/utils';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SearchPage from '@/components/sections/SearchPage.astro';
+
+const t = useTranslations('en');
+---
+
+<BaseLayout title={t('search.title')} locale="en">
+  <SearchPage locale="en" />
+</BaseLayout>

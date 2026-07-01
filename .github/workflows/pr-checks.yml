@@ -1,0 +1,103 @@
+# .github/workflows/pr-checks.yml
+#
+# scaffold: 本阶段不会触发 —— 本地验收（make build / make check）通过、
+# 人工确认下列要点后再删除本注释以启用：
+#   1. 仓库 Settings -> Actions -> General 已允许 GitHub Actions
+#   2. 仓库 Settings -> Code security -> Secret scanning / Dependency graph 已开
+#   3. 下面所有 actions 已从 tag pin 升级到 SHA pin（搜索 "pin to SHA before enabling"）
+#   4. semgrep / osv-scanner / trufflehog 三项扫描在本地 dry-run 过一次，确认
+#      没有把 .env.sample / docs 里的占位串误判为 secret
+#
+# 设计要点：
+#   - 最小权限：只读 contents，没有 write 任何东西的需求。
+#   - 单 job 串行：博客构建本身很快（< 60s），并行收益不大反而拉高复杂度。
+#   - 所有第三方 action 都用浮动 tag + 注释提醒升 SHA，避免 supply-chain。
+
+name: pr-checks
+
+on:
+  pull_request:
+    branches: [main]
+
+# 全局最小权限。后续如有 PR 评论/标签需求再就地局部抬权。
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-scan:
+    name: build + scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        # pin to SHA before enabling
+        uses: actions/checkout@v4
+        with:
+          # OSV/Semgrep 需要完整历史时再改成 0；目前 shallow 足够
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Enable corepack (pnpm)
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+
+      - name: Setup Node 22
+        # pin to SHA before enabling
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install deps (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: Astro type check
+        run: pnpm check
+
+      - name: Build (astro + pagefind)
+        env:
+          # CI 没有运行时密钥；构建期用真实域名避免 sitemap.xml 缺 site 字段
+          SITE_URL: https://blog.wavespro.net
+        run: pnpm build
+
+      # ── 安全扫描：三件套 ──────────────────────────────────────
+      # 任何一项失败都阻断 PR；如需「告警不阻断」，把 continue-on-error 打开。
+      - name: OSV scanner (deps)
+        # pin to SHA before enabling
+        uses: google/osv-scanner-action/osv-scanner-action@v1
+        with:
+          scan-args: |-
+            --recursive
+            --skip-git
+            ./
+        # 出现新 CVE 时手动评估再决定要不要 continue-on-error
+        # continue-on-error: true
+
+      - name: Semgrep OWASP Top 10
+        # pin to SHA before enabling
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: p/owasp-top-ten
+
+      - name: TruffleHog (filesystem secret scan)
+        # pin to SHA before enabling
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --only-verified --fail
+
+      # ── 产物上传，供后续 deploy job / 人工核对 ─────────────
+      - name: Upload dist artifact
+        # pin to SHA before enabling
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-dist-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 7

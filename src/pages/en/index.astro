@@ -1,0 +1,13 @@
+---
+import { SITE_META } from '@/consts';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Home from '@/components/sections/Home.astro';
+---
+
+<BaseLayout
+  title={SITE_META.en.title}
+  description={SITE_META.en.description}
+  locale="en"
+>
+  <Home locale="en" />
+</BaseLayout>
