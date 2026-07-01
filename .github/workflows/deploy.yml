@@ -84,13 +84,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Checkout (for staticwebapp.config.json)
-        # pin to SHA before enabling
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          persist-credentials: false
-
       - name: Download dist artifact
         # pin to SHA before enabling
         uses: actions/download-artifact@v4
@@ -122,11 +115,11 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ steps.swa.outputs.token }}
           action: upload
-          # 产物已在 build job 生成，跳过 Oryx 重复构建
+          # 产物已在 build job 生成，跳过 Oryx 重复构建；
+          # skip_app_build 模式下直接上传 app_location 目录，故指向预构建的 dist
+          #（staticwebapp.config.json 随 public/ 一起被复制进 dist 根）
           skip_app_build: true
-          skip_api_build: true
-          app_location: / # staticwebapp.config.json 在仓库根
-          output_location: dist # 预构建静态产物
+          app_location: dist
           api_location: '' # 无 BFF API
 
       - name: Azure logout
