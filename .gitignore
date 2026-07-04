@@ -25,6 +25,8 @@ coverage/
 # 临时
 *.tmp
 .cache/
+.playwright-mcp/
+.claude/
 
 # pnpm 本地 store（内容寻址缓存，勿入库）
 .pnpm-store/
