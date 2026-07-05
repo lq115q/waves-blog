@@ -10,7 +10,7 @@
     try {
       var stored = localStorage.getItem('theme');
       var systemLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-      var dark = stored ? stored === 'dark' : !systemLight; // 无偏好默认暗
+      var dark = stored ? stored === 'dark' : true; // 无偏好默认暗
       document.documentElement.classList.toggle('dark', dark);
     } catch (e) {
       document.documentElement.classList.add('dark');
